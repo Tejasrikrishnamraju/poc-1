@@ -1,26 +1,31 @@
 pipeline {
     agent any
     environment {
+        AWS_CREDENTIALS = credentials('aws-credentials')
         ECR_URL = "043309346689.dkr.ecr.ap-south-2.amazonaws.com/app-repo"
-        
     }
     stages {
-        stage('Build Docker') {
+        stage('Checkout Code') {
             steps {
-                dir('docker/python') {
-                    sh 'docker build -t my-app:latest .'               // Image build
-                    sh 'docker tag my-app:latest ${ECR_URL}:latest'     // Tag for ECR
-                    sh 'aws ecr get-login-password --region ap-south-2 | docker login --username AWS --password-stdin ${ECR_URL}'  // AWS ECR login
-                    sh 'docker push ${ECR_URL}:latest'                  // ECR ki push
+                checkout scm
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def dockerImage = docker.build("py-app:${env.BUILD_ID}", "./docker/python")
                 }
             }
         }
-        stage('Deploy to Fargate') {
+        stage('Push to ECR') {
             steps {
-                dir('terraform') {
-                    sh '../terraform.exe apply -auto-approve'           // Fargate deploy
+                script {
+                    docker.withRegistry("https://${ECR_URL}", "ecr:ap-south-2:aws-credentials") {
+                        dockerImage.push("latest")
+                    }
                 }
             }
         }
+        
     }
 }
