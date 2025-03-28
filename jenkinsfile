@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        AWS_CREDENTIALS = credentials('aws-credentials')
+        AWS_CREDENTIALS = credentials('aws_credentials')
         ECR_URL = "043309346689.dkr.ecr.ap-south-2.amazonaws.com/app-repo"
     }
     stages {
