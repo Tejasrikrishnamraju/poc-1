@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+    environment {
+        ECR_URL = "043309346689.dkr.ecr.ap-south-2.amazonaws.com/app-repo"
+        
+    }
+    stages {
+        stage('Build Docker') {
+            steps {
+                dir('docker/python') {
+                    sh 'docker build -t my-app:latest .'               // Image build
+                    sh 'docker tag my-app:latest ${ECR_URL}:latest'     // Tag for ECR
+                    sh 'aws ecr get-login-password --region ap-south-2 | docker login --username AWS --password-stdin ${ECR_URL}'  // AWS ECR login
+                    sh 'docker push ${ECR_URL}:latest'                  // ECR ki push
+                }
+            }
+        }
+        stage('Deploy to Fargate') {
+            steps {
+                dir('terraform') {
+                    sh '../terraform.exe apply -auto-approve'           // Fargate deploy
+                }
+            }
+        }
+    }
+}
